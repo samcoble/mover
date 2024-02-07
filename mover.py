@@ -20,16 +20,19 @@ def on_move_resize(window_title, x, y, width, height):
         window.moveTo(x, y)
         window.resizeTo(width, height)
 
-def create_button(button_id, x, y, width, height, text):
-    return Button(
-        frame_below_listbox,
+def create_button(button_id, button_width, button_bg, x, y, width, height, text):
+    
+    button = Button(
+        button_frame,
         text=text,
-        bg='#666',
+        bg=button_bg,
+        fg='#AAA',
         bd=0,
-        width=13,
-        height=3,
+        height=2,
         command=lambda b=button_id, x=x, y=y, width=width, height=height: on_move_resize(listbox.get(tk.ACTIVE), x, y, width, height),
     )
+    button.config(width=button_width)
+    return button
 
 def refresh_listbox(event=None):
     listbox.delete(0, tk.END)
@@ -51,29 +54,45 @@ def load_config():
         # Running as script
         base_dir = os.path.abspath(os.path.dirname(__file__))
 
+    # Create a close button at the top right corner of the window
+    close_button = Button(root, text="X", bg='#402828', fg='#555', bd=0, command=on_exit, width=2, padx=8)
+    close_button.place(relx=0.985, rely=0.01, anchor="ne")
+            
     config_file_path = os.path.join(base_dir, 'config.ini')
 
     try:
         config.read(config_file_path)
 
-        for button_id in range(1, 6):
+        max_button_id = max(int(section[6:]) for section in config.sections() if section.startswith('Button'))
+
+        for button_id in range(1, max_button_id + 1):
             button_section = f'Button{button_id}'
 
             # Check if the section exists before trying to read values
             if config.has_section(button_section):
                 x = int(config.get(button_section, 'x'))
                 y = int(config.get(button_section, 'y'))
+                button_width = 13 #int(65/5)
                 width = int(config.get(button_section, 'width'))
                 height = int(config.get(button_section, 'height'))
                 text = config.get(button_section, 'text')
 
-                button = create_button(button_id, x, y, width, height, text)
-                button.pack(side=tk.LEFT, padx=1, pady=1, fill=tk.BOTH, expand=True)
+                button_bg = ''
+                if ((button_id-1)%5 + int((button_id-1)/5))%2:
+                    button_bg = '#535460'
+                else:
+                    button_bg = '#585860'
+
+                button = create_button(button_id, button_width, button_bg, x, y, width, height, text)
+                button.grid(row=int((button_id-1)/5), column=(button_id-1)%5, padx=1, pady=1)
+                #button.pack(side=tk.LEFT, padx=1, pady=1)
             else:
                 print(f"Section '{button_section}' not found in config.ini")
 
-        status_label.config(text='Config loaded successfully', fg='green')
+        set_app_size(int((max_button_id-1)/5))
 
+        status_label.config(text='Config loaded successfully', fg='green')
+        
     except (KeyError, ValueError) as e:
         status_label.config(text=f'Error loading config: {e}', fg='red')
 
@@ -101,14 +120,55 @@ def open_ini_path():
         import subprocess
         subprocess.run(["xdg-open", config_file_path])
 
-
 # Get open windows
 def get_open_windows():
     return [title for title in gw.getAllTitles() if title]
 
+def set_app_size(rows):
+    # Determine screen width and height
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+
+    # Calculate the center coordinates
+    center_x = int((screen_width - root.winfo_reqwidth()) / 2)
+    center_y = int((screen_height - root.winfo_reqheight()) / 2)
+
+    # Get the first button widget
+    first_button = button_frame.winfo_children()[0]
+
+    # Get the height of the first button
+    button_height = first_button.winfo_reqheight()
+    
+    adjusted_height = 5+375+(rows+1)*(2+button_height)
+    print(listbox.winfo_width())
+
+    # Set size and position
+    root.geometry(f"575x{adjusted_height}+{center_x}+{center_y}")
+
+def start_drag(event):
+    global last_x, last_y
+    last_x = event.x_root
+    last_y = event.y_root
+
+def do_drag(event):
+    global last_x, last_y
+    new_x = root.winfo_x() + (event.x_root - last_x)
+    new_y = root.winfo_y() + (event.y_root - last_y)
+    root.geometry(f"+{new_x}+{new_y}")
+    last_x = event.x_root
+    last_y = event.y_root
+
 # root window
 root = tk.Tk()
-root.title('MOVER')
+root.title('Mover (unregistered)')
+
+# create a frame to contain all widgets with a border
+root_bgHaxyBorder = tk.Frame(root, bd=0, padx=1, pady=1, relief='solid', bg='#333')
+root_bgHaxyBorder.pack(expand=True, fill=tk.BOTH)
+
+# create a frame to contain all widgets with a border
+root_frame = tk.Frame(root_bgHaxyBorder, bd=0, relief='solid', bg='#222')
+root_frame.pack(expand=True, fill=tk.BOTH)
 
 # Set the window to stay on top
 root.attributes('-topmost', True)
@@ -120,46 +180,36 @@ root.option_add("*Font", app_font)
 # Make the app non-resizable
 root.resizable(False, False)
 
-
-# Determine screen width and height
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-
-# Calculate the center coordinates
-center_x = int((screen_width - root.winfo_reqwidth()) / 2)
-center_y = int((screen_height - root.winfo_reqheight()) / 2)
-
-# Set size and position
-root.geometry(f"560x420+{center_x}+{center_y}")
-
 # Big box color
 root.configure(bg='#222')  # or root['bg'] = '#444'
 
 # create a status label
-status_label = tk.Label(root, text='', fg='green', bg='#222')
-status_label.pack(pady=(4, 2))
+status_label = tk.Label(root_frame, text='', fg='green', bg='#222')
+status_label.pack(pady=(6, 0))
 
-frame = tk.Frame(root, bg='#222') #yoyomane
+frame = tk.Frame(root_frame, bg='#222') #yoyomane
 frame.pack(side=tk.TOP, ipady=10)
         
 # create a Listbox
-listbox = Listbox(frame, bg='#333', fg='#AAA', selectbackground='#555', width=100, height=23, bd=0, borderwidth=0, highlightthickness=0)
-listbox.pack(pady=0, padx=7, expand=True, fill=tk.BOTH)
-
+listbox = Listbox(frame, bg='#323232', fg='#AAA', selectbackground='#555', width=100, height=23, bd=0, borderwidth=0, highlightthickness=0)
+listbox.pack(pady=(3, 0), padx=(9,8), expand=True, fill=tk.BOTH)
 
 # Configure the Listbox to hide the scrollbar visibility
 listbox.config(yscrollcommand=lambda *args: None)
 
-
 # create a Frame below the Listbox
-frame_below_listbox = tk.Frame(root, bg='#222', bd=1, width=100)
-frame_below_listbox.pack(pady=(0, 5), padx=5, expand=False, side=tk.BOTTOM)
+frame_below_listbox = tk.Frame(root_frame, bg='#222', bd=1, width=100)
+frame_below_listbox.pack(padx=7, fill=tk.BOTH, side=tk.BOTTOM)
+
+# Create a sub-frame inside frame_below_listbox to hold the buttons
+button_frame = tk.Frame(frame_below_listbox, bg='#292929')
+button_frame.pack(pady=(0, 7), fill=tk.BOTH, expand=True)
 
 # bind listbox click event to refresh
 status_label.bind('<ButtonRelease-1>', refresh_listbox)
 
 # bind label click event to update buttons
-status_label.bind('<ButtonRelease-1>', lambda event: restart_application())
+status_label.bind('<Button-2>', lambda event: restart_application())
 
 status_label.bind('<Button-3>', lambda event: open_ini_path())
 
@@ -168,5 +218,22 @@ load_config()
 
 # create and add the move/resize buttons
 refresh_listbox()
+
+# Set the path to your icon file
+icon_path = "icon.ico"
+
+# Set the icon for the application
+root.iconbitmap(icon_path)
+
+
+# Hide the title bar
+root.overrideredirect(True)
+
+
+# Bind mouse events to start and continue dragging
+root.bind("<Button-1>", start_drag)
+root.bind("<B1-Motion>", do_drag)
+# Your existing code goes here, packing widgets into root
+
 
 root.mainloop()
