@@ -13,7 +13,7 @@ def on_move_resize(window_title, x, y, width, height):
     if window:
         window = window[0]
 
-        # Restore the window if it is minimized
+        # restore the window if it is minimized
         if window.isMinimized:
             window.restore()
             
@@ -39,22 +39,22 @@ def refresh_listbox(event=None):
     open_windows = get_open_windows()
     for i, window_title in enumerate(open_windows):
         listbox.insert(tk.END, window_title)
-        # Set alternating colors after inserting items
+        # set alternating colors after inserting items
         bg_color = '#555' if i % 2 == 0 else '#444'
         listbox.itemconfig(i, {'bg': bg_color})
 
 def load_config():
     config = configparser.ConfigParser()
 
-    # Determine the base directory in both scenarios
+    # determine the base directory in both scenarios
     if getattr(sys, 'frozen', False):
-        # Running as compiled executable
+        # running as compiled executable
         base_dir = os.path.dirname(sys.executable)
     else:
-        # Running as script
+        # running as script
         base_dir = os.path.abspath(os.path.dirname(__file__))
 
-    # Create a close button at the top right corner of the window
+    # create a close button at the top right corner of the window
     close_button = Button(root, text="X", bg='#402828', fg='#555', bd=0, command=on_exit, width=2, padx=8)
     close_button.place(relx=0.985, rely=0.01, anchor="ne")
             
@@ -68,7 +68,7 @@ def load_config():
         for button_id in range(1, max_button_id + 1):
             button_section = f'Button{button_id}'
 
-            # Check if the section exists before trying to read values
+            # check if the section exists before trying to read values
             if config.has_section(button_section):
                 x = int(config.get(button_section, 'x'))
                 y = int(config.get(button_section, 'y'))
@@ -102,21 +102,21 @@ def restart_application():
     os.execl(python, python, *sys.argv)
 
 def open_ini_path():
-    # Determine the base directory in both scenarios
+    # determine the base directory in both scenarios
     if getattr(sys, 'frozen', False):
-        # Running as compiled executable
+        # running as compiled executable
         base_dir = os.path.dirname(sys.executable)
     else:
-        # Running as script
+        # running as script
         base_dir = os.path.abspath(os.path.dirname(__file__))
 
     config_file_path = os.path.join(base_dir, 'config.ini')
 
     try:
-        # Open the file path using the default file explorer
+        # open the file path using the default file explorer
         os.startfile(config_file_path)
     except AttributeError:
-        # For non-Windows systems, use other methods
+        # for non-Windows systems, use other methods
         import subprocess
         subprocess.run(["xdg-open", config_file_path])
 
@@ -125,24 +125,24 @@ def get_open_windows():
     return [title for title in gw.getAllTitles() if title]
 
 def set_app_size(rows):
-    # Determine screen width and height
+    # determine screen width and height
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
 
-    # Calculate the center coordinates
+    # calculate the center coordinates
     center_x = int((screen_width - root.winfo_reqwidth()) / 2)
     center_y = int((screen_height - root.winfo_reqheight()) / 2)
 
-    # Get the first button widget
+    # get the first button widget
     first_button = button_frame.winfo_children()[0]
 
-    # Get the height of the first button
+    # get the height of the first button
     button_height = first_button.winfo_reqheight()
     
     adjusted_height = 5+375+(rows+1)*(2+button_height)
     print(listbox.winfo_width())
 
-    # Set size and position
+    # set size and position
     root.geometry(f"575x{adjusted_height}+{center_x}+{center_y}")
 
 def start_drag(event):
@@ -170,10 +170,10 @@ root_bgHaxyBorder.pack(expand=True, fill=tk.BOTH)
 root_frame = tk.Frame(root_bgHaxyBorder, bd=0, relief='solid', bg='#222')
 root_frame.pack(expand=True, fill=tk.BOTH)
 
-# Set the window to stay on top
+# set the window to stay on top
 root.attributes('-topmost', True)
 
-# Set the font for the entire application
+# set the font for the entire application
 app_font = font.Font(family='Lucida Console', size=10)
 root.option_add("*Font", app_font)
 
@@ -194,14 +194,14 @@ frame.pack(side=tk.TOP, ipady=10)
 listbox = Listbox(frame, bg='#323232', fg='#AAA', selectbackground='#555', width=100, height=23, bd=0, borderwidth=0, highlightthickness=0)
 listbox.pack(pady=(3, 0), padx=(9,8), expand=True, fill=tk.BOTH)
 
-# Configure the Listbox to hide the scrollbar visibility
+# configure the Listbox to hide the scrollbar visibility
 listbox.config(yscrollcommand=lambda *args: None)
 
 # create a Frame below the Listbox
 frame_below_listbox = tk.Frame(root_frame, bg='#222', bd=1, width=100)
 frame_below_listbox.pack(padx=7, fill=tk.BOTH, side=tk.BOTTOM)
 
-# Create a sub-frame inside frame_below_listbox to hold the buttons
+# create a sub-frame inside frame_below_listbox to hold the buttons
 button_frame = tk.Frame(frame_below_listbox, bg='#292929')
 button_frame.pack(pady=(0, 7), fill=tk.BOTH, expand=True)
 
@@ -210,7 +210,6 @@ status_label.bind('<ButtonRelease-1>', refresh_listbox)
 
 # bind label click event to update buttons
 status_label.bind('<Button-2>', lambda event: restart_application())
-
 status_label.bind('<Button-3>', lambda event: open_ini_path())
 
 # load config and create buttons
@@ -225,15 +224,11 @@ icon_path = "icon.ico"
 # Set the icon for the application
 root.iconbitmap(icon_path)
 
-
 # Hide the title bar
 root.overrideredirect(True)
-
 
 # Bind mouse events to start and continue dragging
 root.bind("<Button-1>", start_drag)
 root.bind("<B1-Motion>", do_drag)
-# Your existing code goes here, packing widgets into root
-
 
 root.mainloop()
