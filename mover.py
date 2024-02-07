@@ -55,7 +55,7 @@ def load_config():
         base_dir = os.path.abspath(os.path.dirname(__file__))
 
     # create a close button at the top right corner of the window
-    close_button = Button(root, text="X", bg='#402828', fg='#555', bd=0, command=on_exit, width=2, padx=8)
+    close_button = Button(root, text="X", bg='#402828', fg='#666', bd=0, command=on_exit, width=2, padx=8)
     close_button.place(relx=0.985, rely=0.01, anchor="ne")
             
     config_file_path = os.path.join(base_dir, 'config.ini')
@@ -191,7 +191,7 @@ frame = tk.Frame(root_frame, bg='#222') #yoyomane
 frame.pack(side=tk.TOP, ipady=10)
         
 # create a Listbox
-listbox = Listbox(frame, bg='#323232', fg='#AAA', selectbackground='#555', width=100, height=23, bd=0, borderwidth=0, highlightthickness=0)
+listbox = Listbox(frame, bg='#323232', fg='#AAA', selectbackground='#535460', width=100, height=23, bd=0, borderwidth=0, highlightthickness=0)
 listbox.pack(pady=(3, 0), padx=(9,8), expand=True, fill=tk.BOTH)
 
 # configure the Listbox to hide the scrollbar visibility
