@@ -160,10 +160,12 @@ def set_app_size(rows, width, height, x, y):
     # get the height of the first button
     button_height = first_button.winfo_reqheight()
     
-    adjusted_height = 5+height+(rows+1)*(2+button_height)
+    adjusted_height = 40+height+(rows+1)*(2+button_height)
 
     # set size and position
     root.geometry(f"{width}x{adjusted_height}+{center_x}+{center_y}")
+    # listbox.config(height=int(height*(30/420)/2))
+    # print(listbox.winfo_reqheight())
 
 def start_drag(event):
     global last_x, last_y
@@ -208,11 +210,12 @@ status_label = tk.Label(root_frame, text='', fg='green', bg='#222')
 status_label.pack(pady=(6, 0))
 
 frame = tk.Frame(root_frame, bg='#222') #yoyomane
-frame.pack(side=tk.TOP, ipady=10)
+frame.pack(side=tk.TOP, pady=5, padx=9)
         
 # create a Listbox
-listbox = Listbox(frame, bg='#323232', fg='#AAA', selectbackground='#535460', width=100, height=23, bd=0, borderwidth=0, highlightthickness=0)
-listbox.pack(pady=(3, 0), padx=(9,8), expand=True, fill=tk.BOTH)
+listbox = Listbox(frame, bg='#323232', fg='#AAA', selectbackground='#535460', width=100, bd=0, borderwidth=0, highlightthickness=0)
+# listbox.pack(pady=(3, 0), padx=(9,8), expand=True, fill=tk.BOTH)
+listbox.grid(row=0, column=0, sticky="nsew")  # Sticky option to expand the Listbox
 
 # configure the Listbox to hide the scrollbar visibility
 listbox.config(yscrollcommand=lambda *args: None)
@@ -223,7 +226,7 @@ frame_below_listbox.pack(padx=7, fill=tk.BOTH, side=tk.BOTTOM)
 
 # create a sub-frame inside frame_below_listbox to hold the buttons
 button_frame = tk.Frame(frame_below_listbox, bg='#292929')
-button_frame.pack(pady=(0, 7), fill=tk.BOTH, expand=True)
+button_frame.pack(pady=(0, 8), fill=tk.BOTH, expand=True)
 
 # Configure grid columns to be flexible
 for i in range(5):  # Assuming 5 columns
