@@ -5,6 +5,8 @@ import configparser
 import os
 import sys
 
+window_blacklist = []
+
 def on_exit():
     root.destroy()
 
@@ -20,8 +22,7 @@ def on_move_resize(window_title, x, y, width, height):
         window.moveTo(x, y)
         window.resizeTo(width, height)
 
-def create_button(button_id, button_width, button_bg, x, y, width, height, text):
-    
+def create_button(button_id, button_bg, x, y, width, height, text):
     button = Button(
         button_frame,
         text=text,
@@ -29,22 +30,32 @@ def create_button(button_id, button_width, button_bg, x, y, width, height, text)
         fg='#AAA',
         bd=0,
         height=2,
-        command=lambda b=button_id, x=x, y=y, width=width, height=height: on_move_resize(listbox.get(tk.ACTIVE), x, y, width, height),
+        font=('Lucida Console', 8)
     )
-    button.config(width=button_width)
+    # button.config(width=button_width)
+    if text!='':
+        button.config(command=lambda b=button_id, x=x, y=y, width=width, height=height: on_move_resize(listbox.get(tk.ACTIVE), x, y, width, height))
     return button
+
 
 def refresh_listbox(event=None):
     listbox.delete(0, tk.END)
+
     open_windows = get_open_windows()
     for i, window_title in enumerate(open_windows):
+        if any(name in window_title for name in window_blacklist):
+            continue  # Skip this window if it matches any blacklisted name
+        
         listbox.insert(tk.END, window_title)
-        # set alternating colors after inserting items
+
+    for i in range(listbox.size()):
         bg_color = '#555' if i % 2 == 0 else '#444'
         listbox.itemconfig(i, {'bg': bg_color})
 
+
 def load_config():
-    config = configparser.ConfigParser()
+    global window_blacklist
+    config = configparser.ConfigParser(strict=False)
 
     # determine the base directory in both scenarios
     if getattr(sys, 'frozen', False):
@@ -63,6 +74,9 @@ def load_config():
     try:
         config.read(config_file_path)
 
+        exclude_window_names_string = config.get('Mover', 'exclude_window_names')
+        window_blacklist = exclude_window_names_string.strip('][').replace('"', '').split(', ')
+
         max_button_id = max(int(section[6:]) for section in config.sections() if section.startswith('Button'))
 
         for button_id in range(1, max_button_id + 1):
@@ -72,7 +86,6 @@ def load_config():
             if config.has_section(button_section):
                 x = int(config.get(button_section, 'x'))
                 y = int(config.get(button_section, 'y'))
-                button_width = 13 #int(65/5)
                 width = int(config.get(button_section, 'width'))
                 height = int(config.get(button_section, 'height'))
                 text = config.get(button_section, 'text')
@@ -83,13 +96,21 @@ def load_config():
                 else:
                     button_bg = '#585860'
 
-                button = create_button(button_id, button_width, button_bg, x, y, width, height, text)
-                button.grid(row=int((button_id-1)/5), column=(button_id-1)%5, padx=1, pady=1)
+                button = create_button(button_id, button_bg, x, y, width, height, text)
+                button.grid(row=int((button_id-1)/5), column=(button_id-1)%5, sticky="ew", padx=1, pady=1)
                 #button.pack(side=tk.LEFT, padx=1, pady=1)
             else:
-                print(f"Section '{button_section}' not found in config.ini")
+                # print(f"Section '{button_section}' not found in config.ini")
+                button = create_button(button_id, '#323232', x, y, width, height, '')
+                button.grid(row=int((button_id-1)/5), column=(button_id-1)%5, sticky="ew", padx=1, pady=1)
 
-        set_app_size(int((max_button_id-1)/5))
+        mover_settings = 'Mover'
+        if config.has_section(mover_settings):
+            width = int(config.get(mover_settings, 'width'))
+            height = int(config.get(mover_settings, 'height'))
+            x_off = int(config.get(mover_settings, 'x'))
+            y_off = int(config.get(mover_settings, 'y'))
+            set_app_size(int((max_button_id-1)/5), width, height, x_off, y_off)
 
         status_label.config(text='Config loaded successfully', fg='green')
         
@@ -124,14 +145,14 @@ def open_ini_path():
 def get_open_windows():
     return [title for title in gw.getAllTitles() if title]
 
-def set_app_size(rows):
+def set_app_size(rows, width, height, x, y):
     # determine screen width and height
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
 
     # calculate the center coordinates
-    center_x = int((screen_width - root.winfo_reqwidth()) / 2)
-    center_y = int((screen_height - root.winfo_reqheight()) / 2)
+    center_x = int((screen_width - root.winfo_reqwidth()) / 2 + x)
+    center_y = int((screen_height - root.winfo_reqheight()) / 2 + y)
 
     # get the first button widget
     first_button = button_frame.winfo_children()[0]
@@ -139,11 +160,10 @@ def set_app_size(rows):
     # get the height of the first button
     button_height = first_button.winfo_reqheight()
     
-    adjusted_height = 5+375+(rows+1)*(2+button_height)
-    print(listbox.winfo_width())
+    adjusted_height = 5+height+(rows+1)*(2+button_height)
 
     # set size and position
-    root.geometry(f"575x{adjusted_height}+{center_x}+{center_y}")
+    root.geometry(f"{width}x{adjusted_height}+{center_x}+{center_y}")
 
 def start_drag(event):
     global last_x, last_y
@@ -204,6 +224,10 @@ frame_below_listbox.pack(padx=7, fill=tk.BOTH, side=tk.BOTTOM)
 # create a sub-frame inside frame_below_listbox to hold the buttons
 button_frame = tk.Frame(frame_below_listbox, bg='#292929')
 button_frame.pack(pady=(0, 7), fill=tk.BOTH, expand=True)
+
+# Configure grid columns to be flexible
+for i in range(5):  # Assuming 5 columns
+    button_frame.grid_columnconfigure(i, weight=1)
 
 # bind listbox click event to refresh
 status_label.bind('<ButtonRelease-1>', refresh_listbox)
