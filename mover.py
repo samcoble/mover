@@ -210,12 +210,16 @@ status_label = tk.Label(root_frame, text='', fg='green', bg='#222')
 status_label.pack(pady=(6, 0))
 
 frame = tk.Frame(root_frame, bg='#222') #yoyomane
-frame.pack(side=tk.TOP, pady=5, padx=9)
+frame.pack(side=tk.TOP, pady=5, padx=9, expand=True, fill=tk.BOTH)
         
 # create a Listbox
 listbox = Listbox(frame, bg='#323232', fg='#AAA', selectbackground='#535460', width=100, bd=0, borderwidth=0, highlightthickness=0)
 # listbox.pack(pady=(3, 0), padx=(9,8), expand=True, fill=tk.BOTH)
 listbox.grid(row=0, column=0, sticky="nsew")  # Sticky option to expand the Listbox
+
+# Configure row and column weights to allow proper expansion
+frame.grid_rowconfigure(0, weight=1)
+frame.grid_columnconfigure(0, weight=1)
 
 # configure the Listbox to hide the scrollbar visibility
 listbox.config(yscrollcommand=lambda *args: None)
