@@ -5,10 +5,21 @@ import configparser
 import os
 import sys
 
+app_name = 'Mover (unregistered)'
+last_window = ''
 window_blacklist = []
 
 def on_exit():
     root.destroy()
+
+# Get open windows
+def get_open_windows():
+    return [title for title in gw.getAllTitles() if title]
+
+def get_active_window_title():
+    active_window = gw.getActiveWindow()
+    if active_window:
+        return active_window.title
 
 def on_move_resize(window_title, x, y, width, height):
     window = gw.getWindowsWithTitle(window_title)
@@ -37,21 +48,31 @@ def create_button(button_id, button_bg, x, y, width, height, text):
         button.config(command=lambda b=button_id, x=x, y=y, width=width, height=height: on_move_resize(listbox.get(tk.ACTIVE), x, y, width, height))
     return button
 
-
 def refresh_listbox(event=None):
     listbox.delete(0, tk.END)
 
     open_windows = get_open_windows()
+    last_window_index = -1
+    ioff = 0
+
+    # blacklist
     for i, window_title in enumerate(open_windows):
         if any(name in window_title for name in window_blacklist):
-            continue  # Skip this window if it matches any blacklisted name
+            ioff+=1
+            continue
         
         listbox.insert(tk.END, window_title)
+        # print(window_title + " : " + last_window)
+        if window_title == last_window:
+            last_window_index = (i-ioff)  # match found
 
     for i in range(listbox.size()):
         bg_color = '#555' if i % 2 == 0 else '#444'
         listbox.itemconfig(i, {'bg': bg_color})
 
+    if last_window_index != -1:  # If last_window is found in the list
+        listbox.selection_set(last_window_index)
+        # print(last_window_index)
 
 def load_config():
     global window_blacklist
@@ -76,6 +97,7 @@ def load_config():
 
         exclude_window_names_string = config.get('Mover', 'exclude_window_names')
         window_blacklist = exclude_window_names_string.strip('][').replace('"', '').split(', ')
+        window_blacklist.append(app_name)
 
         max_button_id = max(int(section[6:]) for section in config.sections() if section.startswith('Button'))
 
@@ -141,10 +163,6 @@ def open_ini_path():
         import subprocess
         subprocess.run(["xdg-open", config_file_path])
 
-# Get open windows
-def get_open_windows():
-    return [title for title in gw.getAllTitles() if title]
-
 def set_app_size(rows, width, height, x, y):
     # determine screen width and height
     screen_width = root.winfo_screenwidth()
@@ -182,7 +200,7 @@ def do_drag(event):
 
 # root window
 root = tk.Tk()
-root.title('Mover (unregistered)')
+root.title(app_name)
 
 # create a frame to contain all widgets with a border
 root_bgHaxyBorder = tk.Frame(root, bd=0, padx=1, pady=1, relief='solid', bg='#333')
@@ -214,7 +232,6 @@ frame.pack(side=tk.TOP, pady=5, padx=9, expand=True, fill=tk.BOTH)
         
 # create a Listbox
 listbox = Listbox(frame, bg='#323232', fg='#AAA', selectbackground='#535460', width=100, bd=0, borderwidth=0, highlightthickness=0)
-# listbox.pack(pady=(3, 0), padx=(9,8), expand=True, fill=tk.BOTH)
 listbox.grid(row=0, column=0, sticky="nsew")  # Sticky option to expand the Listbox
 
 # Configure row and column weights to allow proper expansion
@@ -262,4 +279,29 @@ root.overrideredirect(True)
 root.bind("<Button-1>", start_drag)
 root.bind("<B1-Motion>", do_drag)
 
+def check_active_window():
+    global last_window
+    active_window_temp = get_active_window_title()
+    if not active_window_temp in window_blacklist:
+        last_window = active_window_temp
+    
+    refresh_listbox()
+    root.after(1000, check_active_window)
+
+check_active_window()
+
 root.mainloop()
+
+
+
+
+
+
+
+
+
+
+
+
+
+# END
