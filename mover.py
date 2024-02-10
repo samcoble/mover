@@ -1,13 +1,22 @@
+import time
 import tkinter as tk
 from tkinter import Listbox, Button, font, Scrollbar, Menu
 import pygetwindow as gw
 import configparser
 import os
 import sys
+import win32gui
+import win32api
+import win32con
 
+# Globals
 app_name = 'Mover (unregistered)'
 last_window = ''
 window_blacklist = []
+hide_pos = []
+active_pos= []
+_timehook = 0;
+_time = 0;
 
 def on_exit():
     root.destroy()
@@ -75,7 +84,7 @@ def refresh_listbox(event=None):
         # print(last_window_index)
 
 def load_config():
-    global window_blacklist
+    global window_blacklist, hide_pos, active_pos
     config = configparser.ConfigParser(strict=False)
 
     # determine the base directory in both scenarios
@@ -96,6 +105,8 @@ def load_config():
         config.read(config_file_path)
 
         exclude_window_names_string = config.get('Mover', 'exclude_window_names')
+        hide_pos = [config.get('Mover', 'hx'), config.get('Mover', 'hy')]
+        active_pos = [config.get('Mover', 'x'), config.get('Mover', 'y')]
         window_blacklist = exclude_window_names_string.strip('][').replace('"', '').split(', ')
         window_blacklist.append(app_name)
 
@@ -198,6 +209,29 @@ def do_drag(event):
     last_x = event.x_root
     last_y = event.y_root
 
+def resetTimer(event=None):
+    global _time, _timehook
+    _time = time.time()
+    _timehook = 0;
+
+# def check_mouse(event):
+#     window = gw.getWindowsWithTitle(app_name)
+#     if window:
+#         window = window[0]
+#         print(window)
+#         # if window.isMinimized: # restore the window if it is minimized
+#
+#         window.minimize()
+#         window.restore()
+#         window.moveTo(100, 100)
+#
+#     x1, y1 = root.winfo_pointerxy()
+#     x, y = event.x_root, event.y_root  # Get the current mouse position
+#     x0, y0 = root.winfo_x(), root.winfo_y()
+#     # print(str(x1) + " : " + str(y0))
+#     if (x0 <= x <= 0.1*root.winfo_width()+x0) and (y0 <= y <= root.winfo_height()+y0):
+#         print("Mouse is over the root window")
+
 # root window
 root = tk.Tk()
 root.title(app_name)
@@ -278,13 +312,22 @@ root.overrideredirect(True)
 # Bind mouse events to start and continue dragging
 root.bind("<Button-1>", start_drag)
 root.bind("<B1-Motion>", do_drag)
+root.bind("<Motion>", resetTimer)
 
+# runtime loop
 def check_active_window():
-    global last_window
+    global last_window, _timehook, hide_pos, active_pos
     active_window_temp = get_active_window_title()
     if not active_window_temp in window_blacklist:
         last_window = active_window_temp
-    
+
+    if not _timehook:
+        if (time.time() - _time)>0.5: 
+            root.geometry(f"{root.winfo_width()}x{root.winfo_height()}+{active_pos[0]}+{active_pos[1]}")
+            _timehook = 1;
+    if (time.time() - _time)<0.5:
+        root.geometry(f"{root.winfo_width()}x{root.winfo_height()}+{hide_pos[0]}+{hide_pos[1]}")
+
     refresh_listbox()
     root.after(1000, check_active_window)
 
