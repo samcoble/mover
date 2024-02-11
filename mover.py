@@ -15,6 +15,7 @@ last_window = ''
 window_blacklist = []
 hide_pos = []
 active_pos= []
+run_interval = 1000;
 _timehook = 0;
 _time = 0;
 
@@ -84,7 +85,7 @@ def refresh_listbox(event=None):
         # print(last_window_index)
 
 def load_config():
-    global window_blacklist, hide_pos, active_pos
+    global window_blacklist, hide_pos, active_pos, run_interval
     config = configparser.ConfigParser(strict=False)
 
     # determine the base directory in both scenarios
@@ -104,6 +105,7 @@ def load_config():
     try:
         config.read(config_file_path)
 
+        run_interval = int(config.get('Mover', 'run_interval'))
         exclude_window_names_string = config.get('Mover', 'exclude_window_names')
         hide_pos = [config.get('Mover', 'hx'), config.get('Mover', 'hy')]
         active_pos = [config.get('Mover', 'x'), config.get('Mover', 'y')]
@@ -316,7 +318,7 @@ root.bind("<Motion>", resetTimer)
 
 # runtime loop
 def check_active_window():
-    global last_window, _timehook, hide_pos, active_pos
+    global last_window, _timehook, hide_pos, active_pos, run_interval
     active_window_temp = get_active_window_title()
     if not active_window_temp in window_blacklist:
         last_window = active_window_temp
@@ -328,8 +330,9 @@ def check_active_window():
     if (time.time() - _time)<0.5:
         root.geometry(f"{root.winfo_width()}x{root.winfo_height()}+{hide_pos[0]}+{hide_pos[1]}")
 
+    # print(_timehook)
     refresh_listbox()
-    root.after(1000, check_active_window)
+    root.after(run_interval, check_active_window)
 
 check_active_window()
 
